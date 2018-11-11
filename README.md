@@ -1,0 +1,1 @@
+Module for Magento2 make possible use diferrent count of ppromo coupon 
