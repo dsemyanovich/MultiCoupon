@@ -81,20 +81,19 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
      */
     public function execute()
     {
-        $couponCodes = $this->getRequest()->getParam ('remove') == 1
-            ? ''
-            : $this->getRequest()->getParam ('coupon_code');
+        $removeCoupons = $this->getRequest()->getParam('remove');
+        $couponCodes = $this->getRequest()->getParam ('coupon_code');
 
         $cartQuote = $this->cart->getQuote();
         $oldCouponCode = $cartQuote->getCouponCode();
 
-        if (empty($couponCodes)) {
+        if (empty($couponCodes) && empty($removeCoupons)) {
             return $this->_goBack();
         }
 
         $validatedCodes = [];
         foreach ($couponCodes as $code) {
-            if ($this->isValidCouponCode($code)) {
+            if ($code && $this->isValidCouponCode($code)) {
                 $validatedCodes[] = $code;
             }
         }
@@ -108,18 +107,19 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
                 $arrayOldCouponCodes = [];
             }
 
+            $arrayOldCouponCodes = array_diff($arrayOldCouponCodes, $removeCoupons);
             $arrayNewCoupons = array_diff($validatedCodes, $arrayOldCouponCodes);
             $resultCoupons = array_merge($arrayOldCouponCodes, $arrayNewCoupons);
             $resultCoupons = implode(',', $resultCoupons);
 
             if ($resultCoupons && $oldCouponCode != $resultCoupons) {
                 try {
+                    $cartQuote->getShippingAddress()->setCollectShippingRates(true);
                     $cartQuote->setCouponCode($resultCoupons)->collectTotals();
 
-                    $this->_checkoutSession->getQuote()->setCouponCode($oldCouponCode)->save();
-
+                    $this->_checkoutSession->getQuote()->setCouponCode($resultCoupons)->save();
                     $this->messageManager->addSuccess(
-                        __ (
+                        __(
                             'You used coupon code "%1".',
                             $this->_objectManager
                                 ->get(Escaper::class)
@@ -129,15 +129,20 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
                 } catch (\Exception $e) {
                     $this->messageManager->addError($e->getMessage());
                 }
+            } else {
+                $this->messageManager->addSuccess(__('You canceled the coupon code.'));
             }
         }
-
 
         return $this->_goBack();
     }
 
     public function isValidCouponCode(&$code)
     {
+        if (!$code) {
+            return false;
+        }
+
         $code = trim($code);
         $codeLength = strlen($code);
 
@@ -156,7 +161,7 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
                     'The coupon code "%1" is not valid.',
                     $this->_objectManager
                         ->get(Escaper::class)
-                        ->escapeHtml ($code)
+                        ->escapeHtml($code)
                 )
             );
 
