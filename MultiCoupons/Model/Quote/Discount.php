@@ -9,6 +9,8 @@
 namespace Sd\MultiCoupons\Model\Quote;
 
 
+use phpDocumentor\Reflection\DocBlock\Tags\Var_;
+
 class Discount extends \Magento\SalesRule\Model\Quote\Discount
 {
     /**
@@ -35,7 +37,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         \Magento\Quote\Api\Data\ShippingAssignmentInterface $shippingAssignment,
         \Magento\Quote\Model\Quote\Address\Total $total
     ) {
-        parent::collect($quote, $shippingAssignment, $total);
+        \Magento\Quote\Model\Quote\Address\Total\AbstractTotal::collect($quote, $shippingAssignment, $total);
 
         $this->store = $this->storeManager->getStore($quote->getStoreId());
         $this->address = $shippingAssignment->getShipping()->getAddress();
@@ -46,12 +48,12 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
             return $this;
         }
 
-        $couponCode = $quote->getCouponCode();
-        $couponArray = array_unique(explode(',', $couponCode));
-
-        foreach ($couponArray as $couponCodeValue) {
+        $couponsCode = $quote->getCouponCode();
+        $coupons = explode(',', $couponsCode);
+        $couponsArray = is_array($coupons) ? $coupons : [$coupons];
+        $items = $this->calculator->sortItemsByPriority($items, $this->address);
+        foreach ($couponsArray as $couponCodeValue) {
             $this->applyCoupon($couponCodeValue, $items, $quote, $total);
-
             $this->calculateTotal($total);
         }
         return $this;
@@ -88,7 +90,6 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         );
 
         $this->address->setDiscountDescription([]);
-        $items = $this->calculator->sortItemsByPriority($items, $this->address);
 
         /** @var \Magento\Quote\Model\Quote\Item $item */
         foreach ($items as $item) {

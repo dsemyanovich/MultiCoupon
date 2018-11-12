@@ -531,4 +531,42 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
 
         $this->controller->isValidCouponCode($code);
     }
+
+    /**
+     * @covers \Sd\MultiCoupons\Controller\Cart\CouponPost::execute
+     */
+    public function testExecuteWithException()
+    {
+        $this->request->expects($this->at(0))
+            ->method('getParam')
+            ->with('remove')
+            ->willReturn(['REMOVECOUPON']);
+
+        $this->request->expects($this->at(1))
+            ->method('getParam')
+            ->with('coupon_code')
+            ->willReturn([]);
+
+        $this->quote->expects($this->at(0))
+            ->method('getCouponCode')
+            ->willReturn('TEST,REMOVECOUPON');
+
+        $this->cart->expects($this->once())
+            ->method('getQuote')
+            ->willReturn($this->quote);
+
+        $this->quote->expects($this->any())
+            ->method('getItemsCount')
+            ->willReturn(1);
+
+        $this->quote->expects($this->any())
+            ->method('getShippingAddress')
+            ->willThrowException(new \Exception('Same problem'));
+
+        $this->messageManager->expects($this->once())
+            ->method('addError')
+            ->willReturnSelf();
+
+        $this->controller->execute();
+    }
 }
