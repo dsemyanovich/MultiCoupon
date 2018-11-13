@@ -2,6 +2,21 @@
 
 namespace Sd\MultiCoupons\Test\Controller\Cart;
 
+use \Magento\Checkout\Model\Session as SessionModel;
+use \Magento\Framework\App\Request\Http as HttpRequest;
+use \Magento\Framework\App\Request\Http as HttpResponse;
+use \Magento\Quote\Model\Quote as QuoteModel;
+use \Magento\Checkout\Model\Cart as CartModel;
+use \Magento\Framework\Event\Manager as EventManager;
+use \Magento\Framework\ObjectManager\ObjectManager as ObjectManager;
+use \Magento\Framework\Message\ManagerInterface as ManagerInterface;
+use \Magento\Framework\App\Action\Context as ActionContext;
+use \Magento\Framework\Controller\Result\RedirectFactory as RedirectFactory;
+use \Magento\Store\App\Response\Redirect as ResponseRedirect;
+use \Magento\SalesRule\Model\CouponFactory as CouponFactory;
+use \Magento\Quote\Api\CartRepositoryInterface as CartRepositoryInterface;
+use \Magento\Framework\TestFramework\Unit\Helper\ObjectManager as ObjectManagerHelper;
+
 class CouponPostTest extends \PHPUnit\Framework\TestCase
 {
     /**
@@ -10,32 +25,32 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
     protected $controller;
 
     /**
-     * @var \Magento\Checkout\Model\Session | \PHPUnit_Framework_MockObject_MockObject
+     * @var SessionModel | \PHPUnit_Framework_MockObject_MockObject
      */
     protected $checkoutSession;
 
     /**
-     * @var \Magento\Framework\App\Request\Http | \PHPUnit_Framework_MockObject_MockObject
+     * @var HttpRequest | \PHPUnit_Framework_MockObject_MockObject
      */
     protected $request;
 
     /**
-     * @var \Magento\Framework\App\Response\Http | \PHPUnit_Framework_MockObject_MockObject
+     * @var HttpResponse | \PHPUnit_Framework_MockObject_MockObject
      */
     protected $response;
 
     /**
-     * @var \Magento\Quote\Model\Quote | \PHPUnit_Framework_MockObject_MockObject
+     * @var QuoteModel | \PHPUnit_Framework_MockObject_MockObject
      */
     protected $quote;
 
     /**
-     * @var \Magento\Framework\Event\Manager | \PHPUnit_Framework_MockObject_MockObject
+     * @var EventManager | \PHPUnit_Framework_MockObject_MockObject
      */
     protected $eventManager;
 
     /**
-     * @var \Magento\Framework\Event\Manager | \PHPUnit_Framework_MockObject_MockObject
+     * @var EventManager | \PHPUnit_Framework_MockObject_MockObject
      */
     protected $objectManagerMock;
 
@@ -74,9 +89,9 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
      */
     protected function setUp()
     {
-        $this->request = $this->createMock(\Magento\Framework\App\Request\Http::class);
-        $this->response = $this->createMock(\Magento\Framework\App\Response\Http::class);
-        $this->quote = $this->createPartialMock(\Magento\Quote\Model\Quote::class, [
+        $this->request = $this->createMock(HttpRequest::class);
+        $this->response = $this->createMock(HttpResponse::class);
+        $this->quote = $this->createPartialMock(QuoteModel::class, [
             'setCouponCode',
             'getItemsCount',
             'getShippingAddress',
@@ -85,18 +100,18 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
             'collectTotals',
             'save'
         ]);
-        $this->eventManager = $this->createMock(\Magento\Framework\Event\Manager::class);
-        $this->checkoutSession = $this->createMock(\Magento\Checkout\Model\Session::class);
+        $this->eventManager = $this->createMock(EventManager::class);
+        $this->checkoutSession = $this->createMock(SessionModel::class);
 
-        $this->objectManagerMock = $this->createPartialMock(\Magento\Framework\ObjectManager\ObjectManager::class, [
+        $this->objectManagerMock = $this->createPartialMock(ObjectManager::class, [
             'get', 'escapeHtml'
         ]);
 
-        $this->messageManager = $this->getMockBuilder(\Magento\Framework\Message\ManagerInterface::class)
+        $this->messageManager = $this->getMockBuilder(ManagerInterface::class)
             ->disableOriginalConstructor()
             ->getMock();
 
-        $context = $this->createMock(\Magento\Framework\App\Action\Context::class);
+        $context = $this->createMock(ActionContext::class);
         $context->expects($this->once())
             ->method('getObjectManager')
             ->willReturn($this->objectManagerMock);
@@ -114,8 +129,8 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
             ->willReturn($this->messageManager);
 
         $this->redirectFactory =
-            $this->createMock(\Magento\Framework\Controller\Result\RedirectFactory::class);
-        $this->redirect = $this->createMock(\Magento\Store\App\Response\Redirect::class);
+            $this->createMock(RedirectFactory::class);
+        $this->redirect = $this->createMock(ResponseRedirect::class);
 
         $this->redirect->expects($this->any())
             ->method('getRefererUrl')
@@ -129,17 +144,17 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
             ->method('getResultRedirectFactory')
             ->willReturn($this->redirectFactory);
 
-        $this->cart = $this->getMockBuilder(\Magento\Checkout\Model\Cart::class)
+        $this->cart = $this->getMockBuilder(CartModel::class)
             ->disableOriginalConstructor()
             ->getMock();
 
-        $this->couponFactory = $this->getMockBuilder(\Magento\SalesRule\Model\CouponFactory::class)
+        $this->couponFactory = $this->getMockBuilder(CouponFactory::class)
             ->disableOriginalConstructor()
             ->setMethods(['create'])
             ->getMock();
-        $this->quoteRepository = $this->createMock(\Magento\Quote\Api\CartRepositoryInterface::class);
+        $this->quoteRepository = $this->createMock(CartRepositoryInterface::class);
 
-        $objectManagerHelper = new \Magento\Framework\TestFramework\Unit\Helper\ObjectManager($this);
+        $objectManagerHelper = new ObjectManagerHelper($this);
 
         $this->controller = $objectManagerHelper->getObject(
             \Sd\MultiCoupons\Controller\Cart\CouponPost::class,
@@ -224,7 +239,7 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
             ->method('getItemsCount')
             ->willReturn(1);
 
-        $shippingAddress = $this->createMock(\Magento\Quote\Model\Quote\Address::class);
+        $shippingAddress = $this->createMock(QuoteModel\Address::class);
 
         $this->quote->expects($this->any())
             ->method('setCollectShippingRates')
@@ -305,7 +320,7 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
             ->method('getItemsCount')
             ->willReturn(1);
 
-        $shippingAddress = $this->createMock(\Magento\Quote\Model\Quote\Address::class);
+        $shippingAddress = $this->createMock(QuoteModel\Address::class);
 
         $this->quote->expects($this->any())
             ->method('setCollectShippingRates')
@@ -386,7 +401,7 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
             ->method('getItemsCount')
             ->willReturn(1);
 
-        $shippingAddress = $this->createMock(\Magento\Quote\Model\Quote\Address::class);
+        $shippingAddress = $this->createMock(QuoteModel\Address::class);
 
         $this->quote->expects($this->any())
             ->method('setCollectShippingRates')
@@ -456,7 +471,7 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
             ->method('getItemsCount')
             ->willReturn(1);
 
-        $shippingAddress = $this->createMock(\Magento\Quote\Model\Quote\Address::class);
+        $shippingAddress = $this->createMock(QuoteModel\Address::class);
 
         $this->quote->expects($this->any())
             ->method('setCollectShippingRates')

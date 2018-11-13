@@ -333,7 +333,6 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
         return $data;
     }
 
-
     public function testCollectItemHasNoChildren()
     {
         $itemWithChildren = $this->getMockBuilder(\Magento\Quote\Model\Quote\Item::class)

@@ -8,14 +8,17 @@
 
 namespace Sd\MultiCoupons\Controller\Cart;
 
-use \Magento\Checkout\Helper\Cart as CartHelper;
+use Magento\Checkout\Helper\Cart as CartHelper;
 
-
-use Magento\Checkout\Controller\Cart;
-use Magento\Framework\Escaper;
-use Magento\Framework\Exception\LocalizedException;
-
-
+use Magento\Checkout\Model\Cart as Cart;
+use Magento\Checkout\Model\Session as Session;
+use Magento\Framework\App\Action\Context as Context;
+use Magento\Framework\App\Config\ScopeConfigInterface as ScopeConfigInterface;
+use Magento\Framework\Data\Form\FormKey\Validator as Validator;
+use Magento\Framework\Escaper as Escaper;
+use Magento\Quote\Api\CartRepositoryInterface as CartRepositoryInterface;
+use Magento\SalesRule\Model\CouponFactory as CouponFactory;
+use Magento\Store\Model\StoreManagerInterface as StoreManagerInterface;
 
 /**
  * @SuppressWarnings(PHPMD.CouplingBetweenObjects)
@@ -26,40 +29,39 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
     /**
      * Sales quote repository
      *
-     * @var \Magento\Quote\Api\CartRepositoryInterface
+     * @var CartRepositoryInterface
      */
     protected $quoteRepository;
 
     /**
      * Coupon factory
      *
-     * @var \Magento\SalesRule\Model\CouponFactory
+     * @var CouponFactory
      */
     protected $couponFactory;
 
     /**
-     * @param \Magento\Framework\App\Action\Context $context
-     * @param \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig
-     * @param \Magento\Checkout\Model\Session $checkoutSession
-     * @param \Magento\Store\Model\StoreManagerInterface $storeManager
-     * @param \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator
-     * @param \Magento\Checkout\Model\Cart $cart
-     * @param \Magento\SalesRule\Model\CouponFactory $couponFactory
-     * @param \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
+     * @param Context $context
+     * @param ScopeConfigInterface $scopeConfig
+     * @param Session $checkoutSession
+     * @param StoreManagerInterface $storeManager
+     * @param Validator $formKeyValidator
+     * @param Cart $cart
+     * @param CouponFactory $couponFactory
+     * @param CartRepositoryInterface $quoteRepository
      * @codeCoverageIgnore
      */
     public function __construct(
-        \Magento\Framework\App\Action\Context $context,
-        \Magento\Framework\App\Config\ScopeConfigInterface $scopeConfig,
-        \Magento\Checkout\Model\Session $checkoutSession,
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Framework\Data\Form\FormKey\Validator $formKeyValidator,
-        \Magento\Checkout\Model\Cart $cart,
-        \Magento\SalesRule\Model\CouponFactory $couponFactory,
-        \Magento\Quote\Api\CartRepositoryInterface $quoteRepository
-    )
-    {
-        parent::__construct (
+        Context $context,
+        ScopeConfigInterface $scopeConfig,
+        Session $checkoutSession,
+        StoreManagerInterface $storeManager,
+        Validator $formKeyValidator,
+        Cart $cart,
+        CouponFactory $couponFactory,
+        CartRepositoryInterface $quoteRepository
+    ) {
+        parent::__construct(
             $context,
             $scopeConfig,
             $checkoutSession,
@@ -67,22 +69,18 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
             $formKeyValidator,
             $cart
         );
-        
+
         $this->couponFactory = $couponFactory;
         $this->quoteRepository = $quoteRepository;
     }
 
     /**
-     * Initialize coupon
-     *
-     * @return \Magento\Framework\Controller\Result\Redirect
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
-     * @SuppressWarnings(PHPMD.NPathComplexity)
+     * @inheritdoc
      */
     public function execute()
     {
-        $removeCoupons = $this->getRequest()->getParam('remove');
-        $couponCodes = $this->getRequest()->getParam ('coupon_code');
+        $removeCoupons = $this->getRequest()->getParam('remove') ?: [];
+        $couponCodes = $this->getRequest()->getParam('coupon_code') ?: [];
 
         $cartQuote = $this->cart->getQuote();
         $oldCouponCode = $cartQuote->getCouponCode();
@@ -109,8 +107,7 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
 
             $arrayOldCouponCodes = array_diff($arrayOldCouponCodes, $removeCoupons);
             $arrayNewCoupons = array_diff($validatedCodes, $arrayOldCouponCodes);
-            $resultCoupons = array_merge($arrayOldCouponCodes, $arrayNewCoupons);
-            $resultCoupons = implode(',', $resultCoupons);
+            $resultCoupons = implode(',', array_merge($arrayOldCouponCodes, $arrayNewCoupons));
 
             if ($resultCoupons && $oldCouponCode != $resultCoupons) {
                 try {
@@ -137,6 +134,10 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
         return $this->_goBack();
     }
 
+    /**
+     * @param string $code
+     * @return bool
+     */
     public function isValidCouponCode(&$code)
     {
         if (!$code) {
@@ -156,8 +157,8 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
         ) {
             return true;
         } else {
-            $this->messageManager->addError (
-                __ (
+            $this->messageManager->addError(
+                __(
                     'The coupon code "%1" is not valid.',
                     $this->_objectManager
                         ->get(Escaper::class)

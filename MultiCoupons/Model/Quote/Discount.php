@@ -8,8 +8,8 @@
 
 namespace Sd\MultiCoupons\Model\Quote;
 
-
-use phpDocumentor\Reflection\DocBlock\Tags\Var_;
+use Magento\Quote\Api\Data\ShippingAssignmentInterface as ShippingAssignmentInterface;
+use Magento\Quote\Model\Quote as Quote;
 
 class Discount extends \Magento\SalesRule\Model\Quote\Discount
 {
@@ -24,20 +24,14 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
     protected $address;
 
     /**
-     * Collect address discount amount
-     *
-     * @param \Magento\Quote\Model\Quote $quote
-     * @param \Magento\Quote\Api\Data\ShippingAssignmentInterface $shippingAssignment
-     * @param \Magento\Quote\Model\Quote\Address\Total $total
-     * @return $this
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @inheritdoc
      */
     public function collect(
-        \Magento\Quote\Model\Quote $quote,
-        \Magento\Quote\Api\Data\ShippingAssignmentInterface $shippingAssignment,
-        \Magento\Quote\Model\Quote\Address\Total $total
+        Quote $quote,
+        ShippingAssignmentInterface $shippingAssignment,
+        Quote\Address\Total $total
     ) {
-        \Magento\Quote\Model\Quote\Address\Total\AbstractTotal::collect($quote, $shippingAssignment, $total);
+        Quote\Address\Total\AbstractTotal::collect($quote, $shippingAssignment, $total);
 
         $this->store = $this->storeManager->getStore($quote->getStoreId());
         $this->address = $shippingAssignment->getShipping()->getAddress();
@@ -58,7 +52,10 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         }
         return $this;
     }
-    
+
+    /**
+     * @param Quote\Address\Total $total
+     */
     private function calculateTotal($total)
     {
         /** Process shipping amount discount */
@@ -66,32 +63,58 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         $this->address->setBaseShippingDiscountAmount(0);
         if ($this->address->getShippingAmount()) {
             $this->calculator->processShippingAmount($this->address);
-            $total->addTotalAmount($this->getCode(), -$this->address->getShippingDiscountAmount());
-            $total->addBaseTotalAmount($this->getCode(), -$this->address->getBaseShippingDiscountAmount());
-            $total->setShippingDiscountAmount($this->address->getShippingDiscountAmount());
-            $total->setBaseShippingDiscountAmount($this->address->getBaseShippingDiscountAmount());
+            $total->addTotalAmount(
+                $this->getCode(),
+                -$this->address->getShippingDiscountAmount()
+            );
+            $total->addBaseTotalAmount(
+                $this->getCode(),
+                -$this->address->getBaseShippingDiscountAmount()
+            );
+            $total->setShippingDiscountAmount(
+                $this->address->getShippingDiscountAmount()
+            );
+            $total->setBaseShippingDiscountAmount(
+                $this->address->getBaseShippingDiscountAmount()
+            );
         }
 
         $this->calculator->prepareDescription($this->address);
-        $total->setDiscountDescription($this->address->getDiscountDescription());
-        $total->setSubtotalWithDiscount($total->getSubtotal() + $total->getDiscountAmount());
-        $total->setBaseSubtotalWithDiscount($total->getBaseSubtotal() + $total->getBaseDiscountAmount());
+        $total->setDiscountDescription(
+            $this->address->getDiscountDescription()
+        );
+        $total->setSubtotalWithDiscount(
+            $total->getSubtotal() + $total->getDiscountAmount()
+        );
+        $total->setBaseSubtotalWithDiscount(
+            $total->getBaseSubtotal() + $total->getBaseDiscountAmount()
+        );
     }
 
+    /**
+     * @param string $couponCodeValue
+     * @param array $items
+     * @param Quote $quote
+     * @param Quote\Address\Total $total
+     */
     public function applyCoupon($couponCodeValue, $items, $quote, $total)
     {
-        $this->calculator->init($this->store->getWebsiteId(), $quote->getCustomerGroupId(), $couponCodeValue);
+        $this->calculator->init(
+            $this->store->getWebsiteId(),
+            $quote->getCustomerGroupId(),
+            $couponCodeValue
+        );
         $this->calculator->initTotals($items, $this->address);
 
-        $eventArgs = array(
+        $eventArgs = [
             'website_id' => $this->store->getWebsiteId(),
             'customer_group_id' => $quote->getCustomerGroupId(),
             'coupon_code' => $couponCodeValue,
-        );
+        ];
 
         $this->address->setDiscountDescription([]);
 
-        /** @var \Magento\Quote\Model\Quote\Item $item */
+        /** @var Quote\Item $item */
         foreach ($items as $item) {
             if ($item->getNoDiscount() || !$this->calculator->canApplyDiscount($item)) {
                 $this->resetDiscountPerItem($item);
@@ -104,7 +127,10 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
             }
 
             $eventArgs['item'] = $item;
-            $this->eventManager->dispatch('sales_quote_address_discount_item', $eventArgs);
+            $this->eventManager->dispatch(
+                'sales_quote_address_discount_item',
+                $eventArgs
+            );
 
             if ($item->getHasChildren() && $item->isChildrenCalculated()) {
                 $this->calculateDiscountPerItem($item, $total);
@@ -120,7 +146,6 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         $item->setDiscountAmount(0);
         $item->setBaseDiscountAmount(0);
 
-        // ensure my children are zeroed out
         if ($item->getHasChildren() && $item->isChildrenCalculated()) {
             foreach ($item->getChildren() as $child) {
                 $child->setDiscountAmount(0);
@@ -135,9 +160,11 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         $this->distributeDiscount($item);
         foreach ($item->getChildren() as $child) {
             $eventArgs['item'] = $child;
-            $this->eventManager->dispatch('sales_quote_address_discount_item', $eventArgs);
+            $this->eventManager->dispatch(
+                'sales_quote_address_discount_item',
+                $eventArgs
+            );
             $this->aggregateItemDiscount($child, $total);
         }
     }
-
 }
