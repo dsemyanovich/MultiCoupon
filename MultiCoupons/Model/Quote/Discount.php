@@ -11,6 +11,7 @@ namespace Sd\MultiCoupons\Model\Quote;
 use Magento\Quote\Api\Data\ShippingAssignmentInterface as ShippingAssignmentInterface;
 use Magento\Quote\Model\Quote as QuoteModel;
 use Magento\Quote\Model\Quote\Address\Total as QuoteAddressTotal;
+use Magento\Quote\Model\Quote\Address\Total\AbstractTotal as QuoteAddressAbstractTotal;
 
 class Discount extends \Magento\SalesRule\Model\Quote\Discount
 {
@@ -32,7 +33,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         ShippingAssignmentInterface $shippingAssignment,
         QuoteAddressTotal $total
     ) {
-        QuoteAddressTotal\AbstractTotal::collect($quote, $shippingAssignment, $total);
+        QuoteAddressAbstractTotal::collect($quote, $shippingAssignment, $total);
 
         $this->store = $this->storeManager->getStore($quote->getStoreId());
         $this->address = $shippingAssignment->getShipping()->getAddress();
