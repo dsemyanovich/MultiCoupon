@@ -9,7 +9,8 @@
 namespace Sd\MultiCoupons\Model\Quote;
 
 use Magento\Quote\Api\Data\ShippingAssignmentInterface as ShippingAssignmentInterface;
-use Magento\Quote\Model\Quote as Quote;
+use Magento\Quote\Model\Quote as QuoteModel;
+use Magento\Quote\Model\Quote\Address\Total as QuoteAddressTotal;
 
 class Discount extends \Magento\SalesRule\Model\Quote\Discount
 {
@@ -27,11 +28,11 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
      * @inheritdoc
      */
     public function collect(
-        Quote $quote,
+        QuoteModel $quote,
         ShippingAssignmentInterface $shippingAssignment,
-        Quote\Address\Total $total
+        QuoteAddressTotal $total
     ) {
-        Quote\Address\Total\AbstractTotal::collect($quote, $shippingAssignment, $total);
+        QuoteAddressTotal\AbstractTotal::collect($quote, $shippingAssignment, $total);
 
         $this->store = $this->storeManager->getStore($quote->getStoreId());
         $this->address = $shippingAssignment->getShipping()->getAddress();
@@ -54,7 +55,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
     }
 
     /**
-     * @param Quote\Address\Total $total
+     * @param QuoteAddressTotal $total
      */
     private function calculateTotal($total)
     {
@@ -94,8 +95,8 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
     /**
      * @param string $couponCodeValue
      * @param array $items
-     * @param Quote $quote
-     * @param Quote\Address\Total $total
+     * @param QuoteModel $quote
+     * @param QuoteAddressTotal $total
      */
     public function applyCoupon($couponCodeValue, $items, $quote, $total)
     {
@@ -114,7 +115,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
 
         $this->address->setDiscountDescription([]);
 
-        /** @var Quote\Item $item */
+        /** @var QuoteModel\Item $item */
         foreach ($items as $item) {
             if ($item->getNoDiscount() || !$this->calculator->canApplyDiscount($item)) {
                 $this->resetDiscountPerItem($item);

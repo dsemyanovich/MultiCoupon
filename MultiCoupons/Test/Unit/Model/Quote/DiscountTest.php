@@ -5,6 +5,21 @@
  */
 namespace Magento\SalesRule\Test\Unit\Model\Quote;
 
+use Magento\Bundle\Model\Plugin\QuoteItem;
+use \Sd\MultiCoupons\Model\Quote\Discount as SdQuoteDiscount;
+use \Magento\Framework\TestFramework\Unit\Helper\ObjectManager as ObjectManagerHelper;
+use \Magento\Store\Model\StoreManager as StoreManagerModel;
+use \Magento\SalesRule\Model\Validator as ValidatorModel;
+use \Magento\Framework\Event\Manager as EventManager;
+use \Magento\Framework\Pricing\PriceCurrencyInterface as PriceCurrencyInterface;
+use \Magento\Quote\Model\Quote\Address as QuoteAddressModel;
+use \Magento\Quote\Api\Data\ShippingInterface as ShippingInterface;
+use \Magento\Quote\Api\Data\ShippingAssignmentInterface as ShippingAssignmentInterface;
+use \Magento\Quote\Model\Quote\Item as QuoteItemModel;
+use \Magento\Quote\Model\Quote as QuoteModel;
+use \Magento\Store\Model\Store as StoreModel;
+use \Magento\SalesRule\Model\Quote\Discount as QuoteDiscount;
+
 /**
  * Class DiscountTest
  *
@@ -13,12 +28,12 @@ namespace Magento\SalesRule\Test\Unit\Model\Quote;
 class DiscountTest extends \PHPUnit\Framework\TestCase
 {
     /**
-     * @var \Sd\MultiCoupons\Model\Quote\Discount
+     * @var SdQuoteDiscount
      */
     protected $discount;
 
     /**
-     * @var \Magento\Framework\TestFramework\Unit\Helper\ObjectManager
+     * @var ObjectManagerHelper
      */
     protected $objectManager;
 
@@ -49,9 +64,9 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
 
     protected function setUp()
     {
-        $this->objectManager = new \Magento\Framework\TestFramework\Unit\Helper\ObjectManager($this);
-        $this->storeManagerMock = $this->createMock(\Magento\Store\Model\StoreManager::class);
-        $this->validatorMock = $this->getMockBuilder(\Magento\SalesRule\Model\Validator::class)
+        $this->objectManager = new ObjectManagerHelper($this);
+        $this->storeManagerMock = $this->createMock(StoreManagerModel::class);
+        $this->validatorMock = $this->getMockBuilder(ValidatorModel::class)
             ->disableOriginalConstructor()
             ->setMethods(
                 [
@@ -68,8 +83,8 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
                 ]
             )
             ->getMock();
-        $this->eventManagerMock = $this->createMock(\Magento\Framework\Event\Manager::class);
-        $priceCurrencyMock = $this->createMock(\Magento\Framework\Pricing\PriceCurrencyInterface::class);
+        $this->eventManagerMock = $this->createMock(EventManager::class);
+        $priceCurrencyMock = $this->createMock(PriceCurrencyInterface::class);
         $priceCurrencyMock->expects($this->any())
             ->method('round')
             ->will($this->returnCallback(
@@ -79,21 +94,22 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
             ));
 
         $this->addressMock = $this->createPartialMock(
-            \Magento\Quote\Model\Quote\Address::class,
+            QuoteAddressModel::class,
             ['getQuote', 'getAllItems', 'getShippingAmount', '__wakeup', 'getCustomAttributesCodes']
         );
         $this->addressMock->expects($this->any())
             ->method('getCustomAttributesCodes')
             ->willReturn([]);
 
-        $shipping = $this->createMock(\Magento\Quote\Api\Data\ShippingInterface::class);
+        $shipping = $this->createMock(ShippingInterface::class);
         $shipping->expects($this->any())->method('getAddress')->willReturn($this->addressMock);
-        $this->shippingAssignmentMock = $this->createMock(\Magento\Quote\Api\Data\ShippingAssignmentInterface::class);
+
+        $this->shippingAssignmentMock = $this->createMock(ShippingAssignmentInterface::class);
         $this->shippingAssignmentMock->expects($this->any())->method('getShipping')->willReturn($shipping);
 
-        /** @var \Sd\MultiCoupons\Model\Quote\Discount $discount */
+        /** @var SdQuoteDiscount $discount */
         $this->discount = $this->objectManager->getObject(
-            \Sd\MultiCoupons\Model\Quote\Discount::class,
+            SdQuoteDiscount::class,
             [
                 'storeManager' => $this->storeManagerMock,
                 'validator' => $this->validatorMock,
@@ -101,162 +117,6 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
                 'priceCurrency' => $priceCurrencyMock,
             ]
         );
-    }
-
-    public function testCollectItemNoDiscount()
-    {
-        $itemNoDiscount = $this->createPartialMock(
-            \Magento\Quote\Model\Quote\Item::class,
-            ['getNoDiscount', '__wakeup']
-        );
-        $itemNoDiscount->expects($this->once())
-            ->method('getNoDiscount')
-            ->willReturn(true);
-        $quoteMock = $this->createMock(\Magento\Quote\Model\Quote::class);
-        $this->addressMock->expects($this->any())
-            ->method('getQuote')
-            ->willReturn($quoteMock);
-        $this->validatorMock->expects($this->once())
-            ->method('sortItemsByPriority')
-            ->with([$itemNoDiscount], $this->addressMock)
-            ->willReturnArgument(0);
-        $quoteMock->expects($this->at(0))
-            ->method('getStoreId')
-            ->willReturn('1');
-        $storeMock = $this->createPartialMock(\Magento\Store\Model\Store::class, [
-            '__wakeup',
-        ]);
-        $this->storeManagerMock->expects($this->any())
-            ->method('getStore')
-            ->willReturn($storeMock);
-        $this->shippingAssignmentMock->expects($this->any())
-            ->method('getItems')
-            ->willReturn([$itemNoDiscount]);
-        $totalMock = $this->createMock(\Magento\Quote\Model\Quote\Address\Total::class);
-
-        $this->assertInstanceOf(
-            \Sd\Multicoupons\Model\Quote\Discount::class,
-            $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
-        );
-    }
-
-    public function testCollectItemNoItems()
-    {
-        $this->shippingAssignmentMock->expects($this->any())
-            ->method('getItems')
-            ->willReturn([]);
-        $totalMock = $this->createMock(\Magento\Quote\Model\Quote\Address\Total::class);
-        $quoteMock = $this->createMock(\Magento\Quote\Model\Quote::class);
-        $this->assertInstanceOf(
-            \Sd\Multicoupons\Model\Quote\Discount::class,
-            $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
-        );
-    }
-
-    public function testCollectItemHasParent()
-    {
-        $itemWithParentId = $this->createPartialMock(
-            \Magento\Quote\Model\Quote\Item::class,
-            ['getNoDiscount', 'getParentItem', '__wakeup']
-        );
-        $itemWithParentId->expects($this->once())
-            ->method('getNoDiscount')
-            ->willReturn(false);
-
-        $itemWithParentId->expects($this->once())
-            ->method('getParentItem')
-            ->willReturn(true);
-
-        $this->validatorMock->expects($this->any())
-            ->method('canApplyDiscount')
-            ->willReturn(true);
-
-        $this->validatorMock->expects($this->any())
-            ->method('sortItemsByPriority')
-            ->with([$itemWithParentId], $this->addressMock)
-            ->willReturnArgument(0);
-
-        $storeMock = $this->createPartialMock(\Magento\Store\Model\Store::class, ['getStore', '__wakeup']);
-        $this->storeManagerMock->expects($this->any())->method('getStore')->willReturn($storeMock);
-
-        $quoteMock = $this->createMock(\Magento\Quote\Model\Quote::class);
-
-        $this->addressMock->expects($this->any())->method('getQuote')->willReturn($quoteMock);
-        $this->addressMock->expects($this->any())->method('getShippingAmount')->willReturn(true);
-        $this->shippingAssignmentMock->expects($this->any())->method('getItems')->willReturn([$itemWithParentId]);
-        $totalMock = $this->createMock(\Magento\Quote\Model\Quote\Address\Total::class);
-
-        $this->assertInstanceOf(
-            \Sd\Multicoupons\Model\Quote\Discount::class,
-            $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
-        );
-    }
-
-    /**
-     * @dataProvider collectItemHasChildrenDataProvider
-     */
-    public function testCollectItemHasChildren($childItemData, $parentData, $expectedChildData)
-    {
-        $childItems = [];
-        foreach ($childItemData as $itemId => $itemData) {
-            $item = $this->objectManager->getObject(\Magento\Quote\Model\Quote\Item::class)->setData($itemData);
-            $childItems[$itemId] = $item;
-        }
-
-        $itemWithChildren = $this->getMockBuilder(\Magento\Quote\Model\Quote\Item::class)
-            ->disableOriginalConstructor()
-            ->setMethods(
-                [
-                    'getNoDiscount',
-                    'getParentItem',
-                    'getHasChildren',
-                    'isChildrenCalculated',
-                    'getChildren',
-                    '__wakeup',
-                ]
-            )
-            ->getMock();
-        $itemWithChildren->expects($this->once())->method('getNoDiscount')->willReturn(false);
-        $itemWithChildren->expects($this->once())->method('getParentItem')->willReturn(false);
-        $itemWithChildren->expects($this->once())->method('getHasChildren')->willReturn(true);
-        $itemWithChildren->expects($this->once())->method('isChildrenCalculated')->willReturn(true);
-        $itemWithChildren->expects($this->any())->method('getChildren')->willReturn($childItems);
-        foreach ($parentData as $key => $value) {
-            $itemWithChildren->setData($key, $value);
-        }
-
-        $this->validatorMock->expects($this->any())->method('canApplyDiscount')->willReturn(true);
-        $this->validatorMock->expects($this->once())->method('sortItemsByPriority')
-            ->with([$itemWithChildren], $this->addressMock)
-            ->willReturnArgument(0);
-        $this->validatorMock->expects($this->any())->method('canApplyRules')->willReturn(true);
-
-        $storeMock = $this->getMockBuilder(\Magento\Store\Model\Store::class)
-            ->disableOriginalConstructor()
-            ->setMethods(['getStore', '__wakeup'])
-            ->getMock();
-        $this->storeManagerMock->expects($this->any())->method('getStore')->willReturn($storeMock);
-
-        $quoteMock = $this->getMockBuilder(\Magento\Quote\Model\Quote::class)
-            ->disableOriginalConstructor()
-            ->getMock();
-        $this->addressMock->expects($this->any())->method('getQuote')->willReturn($quoteMock);
-        $this->addressMock->expects($this->any())->method('getShippingAmount')->willReturn(true);
-
-        $this->shippingAssignmentMock->expects($this->any())->method('getItems')->willReturn([$itemWithChildren]);
-        $totalMock = $this->createMock(\Magento\Quote\Model\Quote\Address\Total::class);
-
-        $this->assertInstanceOf(
-            \Magento\SalesRule\Model\Quote\Discount::class,
-            $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
-        );
-
-        foreach ($expectedChildData as $itemId => $expectedItemData) {
-            $childItem = $childItems[$itemId];
-            foreach ($expectedItemData as $key => $value) {
-                $this->assertEquals($value, $childItem->getData($key), 'Incorrect value for ' . $key);
-            }
-        }
     }
 
     /**
@@ -333,9 +193,136 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
         return $data;
     }
 
-    public function testCollectItemHasNoChildren()
+    /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     */
+    public function testCollectItemNoDiscount()
     {
-        $itemWithChildren = $this->getMockBuilder(\Magento\Quote\Model\Quote\Item::class)
+        $itemNoDiscount = $this->createPartialMock(
+            QuoteItemModel::class,
+            ['getNoDiscount', '__wakeup']
+        );
+        $itemNoDiscount->expects($this->once())
+            ->method('getNoDiscount')
+            ->willReturn(true);
+
+        $quoteMock = $this->createMock(QuoteModel::class);
+        $this->addressMock->expects($this->any())
+            ->method('getQuote')
+            ->willReturn($quoteMock);
+
+        $this->validatorMock->expects($this->once())
+            ->method('sortItemsByPriority')
+            ->with([$itemNoDiscount], $this->addressMock)
+            ->willReturnArgument(0);
+
+        $quoteMock->expects($this->at(0))
+            ->method('getStoreId')
+            ->willReturn('1');
+
+        $storeMock = $this->createPartialMock(StoreModel::class, ['__wakeup']);
+        $this->storeManagerMock->expects($this->any())
+            ->method('getStore')
+            ->willReturn($storeMock);
+
+        $this->shippingAssignmentMock->expects($this->any())
+            ->method('getItems')
+            ->willReturn([$itemNoDiscount]);
+
+        $totalMock = $this->createMock(QuoteAddressModel\Total::class);
+
+        $this->assertInstanceOf(
+            SdQuoteDiscount::class,
+            $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
+        );
+    }
+
+    /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     */
+    public function testCollectItemNoItems()
+    {
+        $this->shippingAssignmentMock->expects($this->any())
+            ->method('getItems')
+            ->willReturn([]);
+
+        $totalMock = $this->createMock(QuoteAddressModel\Total::class);
+        $quoteMock = $this->createMock(QuoteModel::class);
+
+        $this->assertInstanceOf(
+            SdQuoteDiscount::class,
+            $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
+        );
+    }
+
+    /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     */
+    public function testCollectItemHasParent()
+    {
+        $itemWithParentId = $this->createPartialMock(
+            QuoteItemModel::class,
+            ['getNoDiscount', 'getParentItem', '__wakeup']
+        );
+        $itemWithParentId->expects($this->once())
+            ->method('getNoDiscount')
+            ->willReturn(false);
+        $itemWithParentId->expects($this->once())
+            ->method('getParentItem')
+            ->willReturn(true);
+
+        $this->validatorMock->expects($this->any())
+            ->method('canApplyDiscount')
+            ->willReturn(true);
+        $this->validatorMock->expects($this->any())
+            ->method('sortItemsByPriority')
+            ->with([$itemWithParentId], $this->addressMock)
+            ->willReturnArgument(0);
+
+        $storeMock = $this->createPartialMock(
+            StoreModel::class,
+            ['getStore', '__wakeup']
+        );
+        $this->storeManagerMock->expects($this->any())
+            ->method('getStore')
+            ->willReturn($storeMock);
+
+        $quoteMock = $this->createMock(QuoteModel::class);
+        $this->addressMock->expects($this->any())
+            ->method('getQuote')
+            ->willReturn($quoteMock);
+        $this->addressMock->expects($this->any())
+            ->method('getShippingAmount')
+            ->willReturn(true);
+
+        $this->shippingAssignmentMock->expects($this->any())
+            ->method('getItems')
+            ->willReturn([$itemWithParentId]);
+
+        $totalMock = $this->createMock(QuoteAddressModel\Total::class);
+
+        $this->assertInstanceOf(
+            SdQuoteDiscount::class,
+            $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
+        );
+    }
+
+    /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     * @param QuoteItemModel $childItemData
+     * @param QuoteItemModel $parentData
+     * @param array $expectedChildData
+     * @dataProvider collectItemHasChildrenDataProvider
+     */
+    public function testCollectItemHasChildren($childItemData, $parentData, $expectedChildData)
+    {
+        $childItems = [];
+        foreach ($childItemData as $itemId => $itemData) {
+            $item = $this->objectManager->getObject(QuoteItemModel::class)->setData($itemData);
+            $childItems[$itemId] = $item;
+        }
+
+        $itemWithChildren = $this->getMockBuilder(QuoteItemModel::class)
             ->disableOriginalConstructor()
             ->setMethods(
                 [
@@ -348,29 +335,136 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
                 ]
             )
             ->getMock();
-        $itemWithChildren->expects($this->once())->method('getNoDiscount')->willReturn(false);
-        $itemWithChildren->expects($this->once())->method('getParentItem')->willReturn(false);
-        $itemWithChildren->expects($this->once())->method('getHasChildren')->willReturn(false);
 
-        $this->validatorMock->expects($this->any())->method('canApplyDiscount')->willReturn(true);
-        $this->validatorMock->expects($this->once())->method('sortItemsByPriority')
+        $itemWithChildren->expects($this->once())
+            ->method('getNoDiscount')
+            ->willReturn(false);
+        $itemWithChildren->expects($this->once())
+            ->method('getParentItem')
+            ->willReturn(false);
+        $itemWithChildren->expects($this->once())
+            ->method('getHasChildren')
+            ->willReturn(true);
+        $itemWithChildren->expects($this->once())
+            ->method('isChildrenCalculated')
+            ->willReturn(true);
+        $itemWithChildren->expects($this->any())
+            ->method('getChildren')
+            ->willReturn($childItems);
+
+        foreach ($parentData as $key => $value) {
+            $itemWithChildren->setData($key, $value);
+        }
+
+        $this->validatorMock->expects($this->any())
+            ->method('canApplyDiscount')
+            ->willReturn(true);
+        $this->validatorMock->expects($this->once())
+            ->method('sortItemsByPriority')
             ->with([$itemWithChildren], $this->addressMock)
             ->willReturnArgument(0);
+        $this->validatorMock->expects($this->any())
+            ->method('canApplyRules')
+            ->willReturn(true);
 
-        $storeMock = $this->getMockBuilder(\Magento\Store\Model\Store::class)
+        $storeMock = $this->getMockBuilder(StoreModel::class)
             ->disableOriginalConstructor()
             ->setMethods(['getStore', '__wakeup'])
             ->getMock();
-        $this->storeManagerMock->expects($this->any())->method('getStore')->willReturn($storeMock);
+        $this->storeManagerMock->expects($this->any())
+            ->method('getStore')
+            ->willReturn($storeMock);
 
-        $quoteMock = $this->getMockBuilder(\Magento\Quote\Model\Quote::class)->disableOriginalConstructor()->getMock();
-        $this->addressMock->expects($this->any())->method('getQuote')->willReturn($quoteMock);
-        $this->addressMock->expects($this->any())->method('getShippingAmount')->willReturn(true);
-        $this->shippingAssignmentMock->expects($this->any())->method('getItems')->willReturn([$itemWithChildren]);
+        $quoteMock = $this->getMockBuilder(QuoteModel::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $this->addressMock->expects($this->any())
+            ->method('getQuote')
+            ->willReturn($quoteMock);
+        $this->addressMock->expects($this->any())
+            ->method('getShippingAmount')
+            ->willReturn(true);
 
-        $totalMock = $this->createMock(\Magento\Quote\Model\Quote\Address\Total::class);
+        $this->shippingAssignmentMock->expects($this->any())
+            ->method('getItems')
+            ->willReturn([$itemWithChildren]);
+        $totalMock = $this->createMock(QuoteAddressModel\Total::class);
+
         $this->assertInstanceOf(
-            \Magento\SalesRule\Model\Quote\Discount::class,
+            QuoteDiscount::class,
+            $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
+        );
+
+        foreach ($expectedChildData as $itemId => $expectedItemData) {
+            $childItem = $childItems[$itemId];
+            foreach ($expectedItemData as $key => $value) {
+                $this->assertEquals($value, $childItem->getData($key), 'Incorrect value for ' . $key);
+            }
+        }
+    }
+
+    /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     */
+    public function testCollectItemHasNoChildren()
+    {
+        $itemWithChildren = $this->getMockBuilder(QuoteItemModel::class)
+            ->disableOriginalConstructor()
+            ->setMethods(
+                [
+                    'getNoDiscount',
+                    'getParentItem',
+                    'getHasChildren',
+                    'isChildrenCalculated',
+                    'getChildren',
+                    '__wakeup',
+                ]
+            )
+            ->getMock();
+        $itemWithChildren->expects($this->once())
+            ->method('getNoDiscount')
+            ->willReturn(false);
+        $itemWithChildren->expects($this->once())
+            ->method('getParentItem')
+            ->willReturn(false);
+        $itemWithChildren->expects($this->once())
+            ->method('getHasChildren')
+            ->willReturn(false);
+
+        $this->validatorMock->expects($this->any())
+            ->method('canApplyDiscount')
+            ->willReturn(true);
+        $this->validatorMock->expects($this->once())
+            ->method('sortItemsByPriority')
+            ->with([$itemWithChildren], $this->addressMock)
+            ->willReturnArgument(0);
+
+        $storeMock = $this->getMockBuilder(StoreModel::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['getStore', '__wakeup'])
+            ->getMock();
+        $this->storeManagerMock->expects($this->any())
+            ->method('getStore')
+            ->willReturn($storeMock);
+
+        $quoteMock = $this->getMockBuilder(QuoteModel::class)
+            ->disableOriginalConstructor()
+            ->getMock();
+        $this->addressMock->expects($this->any())
+            ->method('getQuote')
+            ->willReturn($quoteMock);
+        $this->addressMock->expects($this->any())
+            ->method('getShippingAmount')
+            ->willReturn(true);
+
+        $this->shippingAssignmentMock->expects($this->any())
+            ->method('getItems')
+            ->willReturn([$itemWithChildren]);
+
+        $totalMock = $this->createMock(QuoteAddressModel\Total::class);
+
+        $this->assertInstanceOf(
+            QuoteDiscount::class,
             $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
         );
     }
