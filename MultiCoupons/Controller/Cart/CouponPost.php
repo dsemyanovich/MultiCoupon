@@ -79,14 +79,49 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
      */
     public function execute()
     {
+        $cartQuote = $this->cart->getQuote();
+        $itemsCount = $cartQuote->getItemsCount();
+
+        if (!$itemsCount) {
+            return $this->_goBack();
+        }
+
         $removeCoupons = $this->getRequest()->getParam('remove') ?: [];
         $couponCodes = $this->getRequest()->getParam('coupon_code') ?: [];
 
-        $cartQuote = $this->cart->getQuote();
+        $resultCoupons = $this->getCouponCodes($cartQuote, $couponCodes, $removeCoupons);
+
+        if ($resultCoupons) {
+            try {
+                $cartQuote->getShippingAddress()->setCollectShippingRates(true);
+                $cartQuote->setCouponCode($resultCoupons)->collectTotals();
+                $this->_checkoutSession->getQuote()->setCouponCode($resultCoupons)->save();
+                $this->messageManager->addSuccess(
+                    __(
+                        'You used coupon code "%1".',
+                        $this->_objectManager
+                            ->get(Escaper::class)
+                            ->escapeHtml($resultCoupons)
+                    )
+                );
+            } catch (\Exception $e) {
+                $this->messageManager->addError($e->getMessage());
+            }
+        } else {
+            $this->messageManager->addSuccess(__('You canceled the coupon code.'));
+        }
+
+        return $this->_goBack();
+    }
+
+    public function getCouponCodes($cartQuote, $couponCodes, $removeCoupons)
+    {
         $oldCouponCode = $cartQuote->getCouponCode();
 
-        if (empty($couponCodes) && empty($removeCoupons)) {
-            return $this->_goBack();
+        if ($oldCouponCode) {
+            $arrayOldCouponCodes = explode(',', $oldCouponCode);
+        } else {
+            $arrayOldCouponCodes = [];
         }
 
         $validatedCodes = [];
@@ -96,42 +131,15 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
             }
         }
 
-        $itemsCount = $cartQuote->getItemsCount();
+        $arrayOldCouponCodes = array_diff($arrayOldCouponCodes, $removeCoupons);
+        $arrayNewCoupons = array_diff($validatedCodes, $arrayOldCouponCodes);
+        $resultCoupons = implode(',', array_merge($arrayOldCouponCodes, $arrayNewCoupons));
 
-        if ($itemsCount) {
-            if ($oldCouponCode) {
-                $arrayOldCouponCodes = explode(',', $oldCouponCode);
-            } else {
-                $arrayOldCouponCodes = [];
-            }
-
-            $arrayOldCouponCodes = array_diff($arrayOldCouponCodes, $removeCoupons);
-            $arrayNewCoupons = array_diff($validatedCodes, $arrayOldCouponCodes);
-            $resultCoupons = implode(',', array_merge($arrayOldCouponCodes, $arrayNewCoupons));
-
-            if ($resultCoupons && $oldCouponCode != $resultCoupons) {
-                try {
-                    $cartQuote->getShippingAddress()->setCollectShippingRates(true);
-                    $cartQuote->setCouponCode($resultCoupons)->collectTotals();
-
-                    $this->_checkoutSession->getQuote()->setCouponCode($resultCoupons)->save();
-                    $this->messageManager->addSuccess(
-                        __(
-                            'You used coupon code "%1".',
-                            $this->_objectManager
-                                ->get(Escaper::class)
-                                ->escapeHtml($resultCoupons)
-                        )
-                    );
-                } catch (\Exception $e) {
-                    $this->messageManager->addError($e->getMessage());
-                }
-            } else {
-                $this->messageManager->addSuccess(__('You canceled the coupon code.'));
-            }
+        if ($oldCouponCode == $resultCoupons) {
+            return '';
         }
 
-        return $this->_goBack();
+        return $resultCoupons;
     }
 
     /**
@@ -148,8 +156,8 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
         $codeLength = strlen($code);
 
         $coupon = $this->couponFactory->create();
-        $coupon->load($code, 'code');
 
+        $coupon->load($code, 'code');
         if (
             $codeLength &&
             $codeLength <= CartHelper::COUPON_CODE_MAX_LENGTH &&

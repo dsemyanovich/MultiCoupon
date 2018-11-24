@@ -48,6 +48,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         $coupons = explode(',', $couponsCode);
         $couponsArray = is_array($coupons) ? $coupons : [$coupons];
         $items = $this->calculator->sortItemsByPriority($items, $this->address);
+
         foreach ($couponsArray as $couponCodeValue) {
             $this->applyCoupon($couponCodeValue, $items, $quote, $total);
             $this->calculateTotal($total);
