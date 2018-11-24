@@ -384,6 +384,11 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
         return $itemWithChildren;
     }
 
+    /**
+     * function for reproducing coupon applying
+     * @param \PHPUnit_Framework_MockObject_MockObjec $itemWithChildren
+     * @return \PHPUnit_Framework_MockObject_MockObject
+     */
     public function partOfApplyingCoupons($itemWithChildren)
     {
         $this->validatorMock->expects($this->any())
