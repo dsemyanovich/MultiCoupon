@@ -335,7 +335,7 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
 
         $code = 'BAD_COUPON';
 
-        $this->controller->isValidCouponCode($code);
+        $this->assertFalse($this->controller->isValidCouponCode($code));
     }
 
     /**
@@ -362,7 +362,10 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
         $this->controller->execute();
     }
 
-    public function testGetCouponCodesWithCouponCodes()
+    /**
+     * @covers \Sd\MultiCoupons\Controller\Cart\CouponPost::getCouponCodes
+     */
+    public function testGetCouponCodesWithCouponAndRemoveCode()
     {
         $cartQuote = $this->quote;
         $couponCodes = ['TEST'];
@@ -374,10 +377,13 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
 
         $this->loadCouponCode(1);
 
-        $this->isTrue($this->controller->getCouponCodes($cartQuote, $couponCodes, $removeCoupons));
+        $this->assertEquals('TEST1,TEST', $this->controller->getCouponCodes($cartQuote, $couponCodes, $removeCoupons));
     }
 
-    public function testGetCouponCodesWithCouponAndRemoveCodes()
+    /**
+     * @covers \Sd\MultiCoupons\Controller\Cart\CouponPost::getCouponCodes
+     */
+    public function testGetCouponCodesWithCouponCodes()
     {
         $cartQuote = $this->quote;
         $couponCodes = ['TEST'];
@@ -385,13 +391,16 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
 
         $this->loadCouponCode(1);
 
-        $this->isTrue($this->controller->getCouponCodes($cartQuote, $couponCodes, $removeCoupons));
+        $this->assertEquals('TEST', $this->controller->getCouponCodes($cartQuote, $couponCodes, $removeCoupons));
     }
 
+    /**
+     * @covers \Sd\MultiCoupons\Controller\Cart\CouponPost::getCouponCodes
+     */
     public function testGetCouponCodesWithEmptyCodes()
     {
         $cartQuote = $this->quote;
-        $couponCodes = ['TEST'];
+        $couponCodes = ['TEST123'];
         $removeCoupons = [];
 
         $this->loadCouponCode(0);
@@ -404,7 +413,7 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
             ->method('get')
             ->willReturnSelf();
 
-        $this->isFalse($this->controller->getCouponCodes($cartQuote, $couponCodes, $removeCoupons));
+        $this->assertEquals('', $this->controller->getCouponCodes($cartQuote, $couponCodes, $removeCoupons));
     }
 
     /**

@@ -11,6 +11,7 @@ namespace Sd\MultiCoupons\Controller\Cart;
 use Magento\Checkout\Helper\Cart as CartHelper;
 
 use Magento\Checkout\Model\Cart as Cart;
+use Magento\Quote\Model\Quote as MagentoQuote;
 use Magento\Checkout\Model\Session as Session;
 use Magento\Framework\App\Action\Context as Context;
 use Magento\Framework\App\Config\ScopeConfigInterface as ScopeConfigInterface;
@@ -114,8 +115,17 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
         return $this->_goBack();
     }
 
-    public function getCouponCodes($cartQuote, $couponCodes, $removeCoupons)
-    {
+    /**
+     * @param MagentoQuote $cartQuote
+     * @param array $couponCodes
+     * @param array $removeCoupons
+     * @return string
+     */
+    public function getCouponCodes(
+        MagentoQuote $cartQuote,
+        array $couponCodes,
+        array $removeCoupons
+    ): string {
         $oldCouponCode = $cartQuote->getCouponCode();
 
         if ($oldCouponCode) {
@@ -146,7 +156,7 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
      * @param string $code
      * @return bool
      */
-    public function isValidCouponCode(&$code)
+    public function isValidCouponCode(string &$code): bool
     {
         if (!$code) {
             return false;

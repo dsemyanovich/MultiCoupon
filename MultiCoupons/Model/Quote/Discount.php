@@ -32,7 +32,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         QuoteModel $quote,
         ShippingAssignmentInterface $shippingAssignment,
         QuoteAddressTotal $total
-    ) {
+    ): Discount {
         QuoteAddressAbstractTotal::collect($quote, $shippingAssignment, $total);
 
         $this->store = $this->storeManager->getStore($quote->getStoreId());
@@ -40,6 +40,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         $this->calculator->reset($this->address);
 
         $items = $shippingAssignment->getItems();
+
         if (!count($items)) {
             return $this;
         }
@@ -53,13 +54,14 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
             $this->applyCoupon($couponCodeValue, $items, $quote, $total);
             $this->calculateTotal($total);
         }
+
         return $this;
     }
 
     /**
      * @param QuoteAddressTotal $total
      */
-    private function calculateTotal($total)
+    private function calculateTotal(QuoteAddressTotal $total)
     {
         /** Process shipping amount discount */
         $this->address->setShippingDiscountAmount(0);
@@ -100,13 +102,18 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
      * @param QuoteModel $quote
      * @param QuoteAddressTotal $total
      */
-    public function applyCoupon($couponCodeValue, $items, $quote, $total)
-    {
+    private function applyCoupon(
+        string $couponCodeValue,
+        array $items,
+        QuoteModel $quote,
+        QuoteAddressTotal $total
+    ) {
         $this->calculator->init(
             $this->store->getWebsiteId(),
             $quote->getCustomerGroupId(),
             $couponCodeValue
         );
+
         $this->calculator->initTotals($items, $this->address);
 
         $eventArgs = [
@@ -124,7 +131,6 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
                 continue;
             }
 
-            // to determine the child item discount, we calculate the parent
             if ($item->getParentItem()) {
                 continue;
             }
@@ -144,7 +150,10 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         }
     }
 
-    private function resetDiscountPerItem($item)
+    /**
+     * @param QuoteModel\Item $item
+     */
+    private function resetDiscountPerItem(QuoteModel\Item $item)
     {
         $item->setDiscountAmount(0);
         $item->setBaseDiscountAmount(0);
@@ -157,7 +166,11 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         }
     }
 
-    private function calculateDiscountPerItem($item, $total)
+    /**
+     * @param QuoteModel\Item $item
+     * @param $total
+     */
+    private function calculateDiscountPerItem(QuoteModel\Item $item, QuoteAddressTotal $total)
     {
         $this->calculator->process($item);
         $this->distributeDiscount($item);

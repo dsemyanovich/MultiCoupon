@@ -194,6 +194,11 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
         return $data;
     }
 
+    /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::calculateTotal
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::applyCoupon
+     */
     public function testCollectItemNoDiscount()
     {
         $itemNoDiscount = $this->createPartialMock(
@@ -235,6 +240,9 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
         );
     }
 
+    /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     */
     public function testCollectItemNoItems()
     {
         $this->shippingAssignmentMock->expects($this->any())
@@ -250,6 +258,11 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
         );
     }
 
+    /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::calculateTotal
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::applyCoupon
+     */
     public function testCollectItemHasParent()
     {
         $itemWithParentId = $this->createPartialMock(
@@ -278,6 +291,12 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::calculateTotal
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::applyCoupon
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::resetDiscountPerItem
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::calculateDiscountPerItem
+     *
      * @param QuoteItemModel $childItemData
      * @param QuoteItemModel $parentData
      * @param array $expectedChildData
@@ -322,6 +341,7 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
         $this->shippingAssignmentMock->expects($this->any())
             ->method('getItems')
             ->willReturn([$itemWithChildren]);
+
         $totalMock = $this->createMock(QuoteAddressModel\Total::class);
 
         $this->assertInstanceOf(
@@ -337,7 +357,11 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
         }
     }
 
-
+    /**
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::calculateTotal
+     * @covers \Sd\MultiCoupons\Model\Quote\Discount::applyCoupon
+     */
     public function testCollectItemHasNoChildren()
     {
         $itemWithChildren = $this->generateQuoteItem(false);
