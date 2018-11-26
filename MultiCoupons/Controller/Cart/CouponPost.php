@@ -20,7 +20,6 @@ use Magento\Store\Model\StoreManagerInterface as StoreManagerInterface;
  */
 class CouponPost extends \Magento\Checkout\Controller\Cart
 {
-
     /**
      * Sales quote repository
      *
