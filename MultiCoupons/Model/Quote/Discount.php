@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: claretyoung
- * Date: 01/03/2018
- * Time: 17:17
- */
 
 namespace Sd\MultiCoupons\Model\Quote;
 

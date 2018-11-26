@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: claretyoung
- * Date: 27/02/2018
- * Time: 16:39
- */
 
 namespace Sd\MultiCoupons\Controller\Cart;
 
