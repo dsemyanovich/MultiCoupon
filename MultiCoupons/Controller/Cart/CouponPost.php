@@ -122,9 +122,9 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
         $oldCouponCode = $cartQuote->getCouponCode();
 
         if ($oldCouponCode) {
-            $arrayOldCouponCodes = explode(',', $oldCouponCode);
+            $oldCouponsList = explode(',', $oldCouponCode);
         } else {
-            $arrayOldCouponCodes = [];
+            $oldCouponsList = [];
         }
 
         $validatedCodes = [];
@@ -134,9 +134,9 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
             }
         }
 
-        $arrayOldCouponCodes = array_diff($arrayOldCouponCodes, $removeCoupons);
-        $arrayNewCoupons = array_diff($validatedCodes, $arrayOldCouponCodes);
-        $resultCoupons = implode(',', array_merge($arrayOldCouponCodes, $arrayNewCoupons));
+        $oldCouponsList = array_diff($oldCouponsList, $removeCoupons);
+        $newCoupons = array_diff($validatedCodes, $oldCouponsList);
+        $resultCoupons = implode(',', array_merge($oldCouponsList, $newCoupons));
 
         if ($oldCouponCode == $resultCoupons) {
             return '';
@@ -161,23 +161,24 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
         $coupon = $this->couponFactory->create();
 
         $coupon->load($code, 'code');
+
         if (
             $codeLength &&
             $codeLength <= CartHelper::COUPON_CODE_MAX_LENGTH &&
             $coupon->getId()
         ) {
             return true;
-        } else {
-            $this->messageManager->addError(
-                __(
-                    'The coupon code "%1" is not valid.',
-                    $this->_objectManager
-                        ->get(Escaper::class)
-                        ->escapeHtml($code)
-                )
-            );
-
-            return false;
         }
+
+        $this->messageManager->addError(
+            __(
+                'The coupon code "%1" is not valid.',
+                $this->_objectManager
+                    ->get(Escaper::class)
+                    ->escapeHtml($code)
+            )
+        );
+
+        return false;
     }
 }

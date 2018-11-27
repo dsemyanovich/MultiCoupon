@@ -9,6 +9,8 @@ use Magento\Quote\Model\Quote\Address\Total\AbstractTotal as QuoteAddressAbstrac
 
 class Discount extends \Magento\SalesRule\Model\Quote\Discount
 {
+    const SALES_QUOTE_ADDRESS_DISCOUNT_ITEM_ARRAY_KEY = 'item';
+
     /**
      * @var null|\Magento\Store\Api\Data\StoreInterface
      */
@@ -20,7 +22,12 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
     protected $address;
 
     /**
-     * @inheritdoc
+     * Collect address discount amount considering multi coupons
+     *
+     * @param QuoteModel $quote
+     * @param ShippingAssignmentInterface $shippingAssignment
+     * @param QuoteAddressTotal $total
+     * @return $this
      */
     public function collect(
         QuoteModel $quote,
@@ -35,17 +42,16 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
 
         $items = $shippingAssignment->getItems();
 
-        if (!count($items)) {
+        if (empty($items)) {
             return $this;
         }
 
-        $couponsCode = $quote->getCouponCode();
-        $coupons = explode(',', $couponsCode);
-        $couponsArray = is_array($coupons) ? $coupons : [$coupons];
+        $couponsList = explode(',', $quote->getCouponCode());
+        $couponsList = is_array($couponsList) ? $couponsList: [$couponsList];
         $items = $this->calculator->sortItemsByPriority($items, $this->address);
 
-        foreach ($couponsArray as $couponCodeValue) {
-            $this->applyCoupon($couponCodeValue, $items, $quote, $total);
+        foreach ($couponsList as $couponCode) {
+            $this->applyCoupon($couponCode, $items, $quote, $total);
             $this->calculateTotal($total);
         }
 
@@ -57,7 +63,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
      */
     private function calculateTotal(QuoteAddressTotal $total)
     {
-        /** Process shipping amount discount */
+        /* Process shipping amount discount */
         $this->address->setShippingDiscountAmount(0);
         $this->address->setBaseShippingDiscountAmount(0);
         if ($this->address->getShippingAmount()) {
@@ -116,7 +122,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
             'coupon_code' => $couponCodeValue,
         ];
 
-        $this->address->setDiscountDescription([]);
+        $this->address->setDiscountDescription();
 
         /** @var QuoteModel\Item $item */
         foreach ($items as $item) {
@@ -169,7 +175,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         $this->calculator->process($item);
         $this->distributeDiscount($item);
         foreach ($item->getChildren() as $child) {
-            $eventArgs['item'] = $child;
+            $eventArgs[self::SALES_QUOTE_ADDRESS_DISCOUNT_ITEM_ARRAY_KEY] = $child;
             $this->eventManager->dispatch(
                 'sales_quote_address_discount_item',
                 $eventArgs
