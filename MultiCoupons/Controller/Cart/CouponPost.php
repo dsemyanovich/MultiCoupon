@@ -138,7 +138,7 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
         $newCoupons = array_diff($validatedCodes, $oldCouponsList);
         $resultCoupons = implode(',', array_merge($oldCouponsList, $newCoupons));
 
-        if ($oldCouponCode == $resultCoupons) {
+        if ($oldCouponCode === $resultCoupons) {
             return '';
         }
 
