@@ -97,13 +97,13 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
     }
 
     /**
-     * @param string $couponCodeValue
+     * @param string $couponCode
      * @param array $items
      * @param QuoteModel $quote
      * @param QuoteAddressTotal $total
      */
     private function applyCoupon(
-        string $couponCodeValue,
+        string $couponCode,
         array $items,
         QuoteModel $quote,
         QuoteAddressTotal $total
@@ -111,7 +111,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         $this->calculator->init(
             $this->store->getWebsiteId(),
             $quote->getCustomerGroupId(),
-            $couponCodeValue
+            $couponCode
         );
 
         $this->calculator->initTotals($items, $this->address);
@@ -119,7 +119,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
         $eventArgs = [
             'website_id' => $this->store->getWebsiteId(),
             'customer_group_id' => $quote->getCustomerGroupId(),
-            'coupon_code' => $couponCodeValue,
+            'coupon_code' => $couponCode,
         ];
 
         $this->address->setDiscountDescription();

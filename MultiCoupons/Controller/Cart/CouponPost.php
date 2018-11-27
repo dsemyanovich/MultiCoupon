@@ -80,22 +80,22 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
             return $this->_goBack();
         }
 
-        $removeCoupons = $this->getRequest()->getParam('remove') ?: [];
-        $couponCodes = $this->getRequest()->getParam('coupon_code') ?: [];
+        $removeCodesList = $this->getRequest()->getParam('remove') ?: [];
+        $couponCodesList = $this->getRequest()->getParam('coupon_code') ?: [];
 
-        $resultCoupons = $this->getCouponCodes($cartQuote, $couponCodes, $removeCoupons);
+        $resultCodes = $this->getCouponCodes($cartQuote, $couponCodesList, $removeCodesList);
 
-        if ($resultCoupons) {
+        if ($resultCodes) {
             try {
                 $cartQuote->getShippingAddress()->setCollectShippingRates(true);
-                $cartQuote->setCouponCode($resultCoupons)->collectTotals();
-                $this->_checkoutSession->getQuote()->setCouponCode($resultCoupons)->save();
+                $cartQuote->setCouponCode($resultCodes)->collectTotals();
+                $this->_checkoutSession->getQuote()->setCouponCode($resultCodes)->save();
                 $this->messageManager->addSuccess(
                     __(
                         'You used coupon code "%1".',
                         $this->_objectManager
                             ->get(Escaper::class)
-                            ->escapeHtml($resultCoupons)
+                            ->escapeHtml($resultCodes)
                     )
                 );
             } catch (\Exception $e) {
@@ -110,39 +110,39 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
 
     /**
      * @param MagentoQuote $cartQuote
-     * @param array $couponCodes
-     * @param array $removeCoupons
+     * @param array $couponCodesList
+     * @param array $removeCodesList
      * @return string
      */
     public function getCouponCodes(
         MagentoQuote $cartQuote,
-        array $couponCodes,
-        array $removeCoupons
+        array $couponCodesList,
+        array $removeCodesList
     ): string {
-        $oldCouponCode = $cartQuote->getCouponCode();
+        $oldCode = $cartQuote->getCouponCode();
 
-        if ($oldCouponCode) {
-            $oldCouponsList = explode(',', $oldCouponCode);
+        if ($oldCode) {
+            $oldCodeList = explode(',', $oldCode);
         } else {
-            $oldCouponsList = [];
+            $oldCodeList = [];
         }
 
         $validatedCodes = [];
-        foreach ($couponCodes as $code) {
+        foreach ($couponCodesList as $code) {
             if ($code && $this->isValidCouponCode($code)) {
                 $validatedCodes[] = $code;
             }
         }
 
-        $oldCouponsList = array_diff($oldCouponsList, $removeCoupons);
-        $newCoupons = array_diff($validatedCodes, $oldCouponsList);
-        $resultCoupons = implode(',', array_merge($oldCouponsList, $newCoupons));
+        $oldCodeList = array_diff($oldCodeList, $removeCodesList);
+        $newCoupons = array_diff($validatedCodes, $oldCodeList);
+        $resultCodes = implode(',', array_merge($oldCodeList, $newCoupons));
 
-        if ($oldCouponCode === $resultCoupons) {
+        if ($oldCode === $resultCodes) {
             return '';
         }
 
-        return $resultCoupons;
+        return $resultCodes;
     }
 
     /**
