@@ -21,15 +21,11 @@ use Magento\Store\Model\StoreManagerInterface as StoreManagerInterface;
 class CouponPost extends \Magento\Checkout\Controller\Cart
 {
     /**
-     * Sales quote repository
-     *
      * @var CartRepositoryInterface
      */
     protected $quoteRepository;
 
     /**
-     * Coupon factory
-     *
      * @var CouponFactory
      */
     protected $couponFactory;
@@ -112,6 +108,7 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
      * @param MagentoQuote $cartQuote
      * @param array $couponCodesList
      * @param array $removeCodesList
+     *
      * @return string
      */
     public function getCouponCodes(
@@ -121,14 +118,11 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
     ): string {
         $oldCode = $cartQuote->getCouponCode();
 
-        if ($oldCode) {
-            $oldCodeList = explode(',', $oldCode);
-        } else {
-            $oldCodeList = [];
-        }
+        $oldCodeList = $oldCode ? explode(',', $oldCode) : [];
 
         $validatedCodes = [];
         foreach ($couponCodesList as $code) {
+            $code = trim($code);
             if ($code && $this->isValidCouponCode($code)) {
                 $validatedCodes[] = $code;
             }
@@ -147,19 +141,18 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
 
     /**
      * @param string $code
+     *
      * @return bool
      */
-    public function isValidCouponCode(string &$code): bool
+    public function isValidCouponCode(string $code): bool
     {
         if (!$code) {
             return false;
         }
 
-        $code = trim($code);
         $codeLength = strlen($code);
 
         $coupon = $this->couponFactory->create();
-
         $coupon->load($code, 'code');
 
         if (

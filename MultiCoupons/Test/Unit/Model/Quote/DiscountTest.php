@@ -297,6 +297,7 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
      * @param QuoteItemModel $childItemData
      * @param QuoteItemModel $parentData
      * @param array $expectedChildData
+     *
      * @dataProvider collectItemHasChildrenDataProvider
      */
     public function testCollectItemHasChildren($childItemData, $parentData, $expectedChildData)
@@ -375,6 +376,7 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
 
     /**
      * @param bool $hasChildren
+     *
      * @return \PHPUnit_Framework_MockObject_MockObject
      */
     public function generateQuoteItem(bool $hasChildren = true)
@@ -406,8 +408,10 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
     }
 
     /**
-     * function for reproducing coupon applying
+     * Function for reproducing coupon applying
+     *
      * @param \PHPUnit_Framework_MockObject_MockObjec $itemWithChildren
+     *
      * @return \PHPUnit_Framework_MockObject_MockObject
      */
     public function partOfApplyingCoupons($itemWithChildren)

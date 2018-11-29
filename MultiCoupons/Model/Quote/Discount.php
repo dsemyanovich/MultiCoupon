@@ -27,6 +27,7 @@ class Discount extends \Magento\SalesRule\Model\Quote\Discount
      * @param QuoteModel $quote
      * @param ShippingAssignmentInterface $shippingAssignment
      * @param QuoteAddressTotal $total
+     *
      * @return $this
      */
     public function collect(
