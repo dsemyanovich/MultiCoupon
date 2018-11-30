@@ -39,6 +39,7 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
      * @param Cart $cart
      * @param CouponFactory $couponFactory
      * @param CartRepositoryInterface $quoteRepository
+     *
      * @codeCoverageIgnore
      */
     public function __construct(
@@ -156,9 +157,9 @@ class CouponPost extends \Magento\Checkout\Controller\Cart
         $coupon->load($code, 'code');
 
         if (
-            $codeLength &&
-            $codeLength <= CartHelper::COUPON_CODE_MAX_LENGTH &&
-            $coupon->getId()
+            $codeLength
+            && $codeLength <= CartHelper::COUPON_CODE_MAX_LENGTH
+            && $coupon->getId()
         ) {
             return true;
         }

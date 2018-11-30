@@ -29,7 +29,7 @@
                                name="coupon_code[]"
                                value="<?= $block->escapeHtml($block->getCouponCode()) ?>"
                                placeholder="<?= $block->escapeHtml(__('Enter discount code')) ?>"
-                            <?php if (strlen($block->getCouponCode())): ?>
+                            <?php if ($block->getCouponCode()): ?>
                                 disabled="disabled"
                             <?php endif; ?> />
                     </div>
