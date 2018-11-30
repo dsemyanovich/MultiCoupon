@@ -1,1 +1,3 @@
-Module for Magento2 make possible use diferrent count of ppromo coupon 
+#MultiCoupon
+
+Module for Magento 2 make possible use diferrent count of promo coupons
