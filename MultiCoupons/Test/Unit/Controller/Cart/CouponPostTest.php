@@ -168,7 +168,7 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
      */
     public function testExecuteWithEmptyCouponAndRemove()
     {
-        $this->getCouponCodesAndQuoteItemsCount(0);
+        $this->getCouponCodesAndQuoteItemsCount(1);
 
         $this->controller->execute();
     }
@@ -383,24 +383,6 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
     /**
      * @covers \Sd\MultiCoupons\Controller\Cart\CouponPost::getCouponCodes
      */
-    public function testGetCouponCodesWithEqualCouponAndOldCode()
-    {
-        $cartQuote = $this->quote;
-        $couponCodes = ['TEST'];
-        $removeCoupons = ['REMOVECOUPON'];
-
-        $this->quote->expects($this->any())
-            ->method('getCouponCode')
-            ->willReturn('TEST');
-
-        $this->loadCouponCode(1);
-
-        $this->assertEquals('', $this->controller->getCouponCodes($cartQuote, $couponCodes, $removeCoupons));
-    }
-
-    /**
-     * @covers \Sd\MultiCoupons\Controller\Cart\CouponPost::getCouponCodes
-     */
     public function testGetCouponCodesWithCouponCodes()
     {
         $cartQuote = $this->quote;
@@ -463,16 +445,13 @@ class CouponPostTest extends \PHPUnit\Framework\TestCase
         $this->quote->expects($this->any())
             ->method('getItemsCount')
             ->willReturn($itemCount);
-
-        if ($itemCount) {
-            $this->request->expects($this->at(1))
-                ->method('getParam')
-                ->with('coupon_code')
-                ->willReturn($couponCode);
-            $this->request->expects($this->at(0))
-                ->method('getParam')
-                ->with('remove')
-                ->willReturn($removeCoupon);
-        }
+        $this->request->expects($this->at(1))
+            ->method('getParam')
+            ->with('coupon_code')
+            ->willReturn($couponCode);
+        $this->request->expects($this->at(0))
+            ->method('getParam')
+            ->with('remove')
+            ->willReturn($removeCoupon);
     }
 }

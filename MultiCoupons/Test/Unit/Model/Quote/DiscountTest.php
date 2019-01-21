@@ -300,7 +300,7 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
      *
      * @dataProvider collectItemHasChildrenDataProvider
      */
-    public function testCollectItemHasChildrenWithDiscount($childItemData, $parentData, $expectedChildData)
+    public function testCollectItemHasChildren($childItemData, $parentData, $expectedChildData)
     {
         $childItems = [];
         foreach ($childItemData as $itemId => $itemData) {
@@ -353,65 +353,6 @@ class DiscountTest extends \PHPUnit\Framework\TestCase
                 $this->assertEquals($value, $childItem->getData($key), 'Incorrect value for ' . $key);
             }
         }
-    }
-
-    /**
-     * @covers \Sd\MultiCoupons\Model\Quote\Discount::collect
-     * @covers \Sd\MultiCoupons\Model\Quote\Discount::calculateTotal
-     * @covers \Sd\MultiCoupons\Model\Quote\Discount::applyCoupon
-     * @covers \Sd\MultiCoupons\Model\Quote\Discount::resetDiscountPerItem
-     * @covers \Sd\MultiCoupons\Model\Quote\Discount::calculateDiscountPerItem
-     *
-     * @param QuoteItemModel $childItemData
-     * @param QuoteItemModel $parentData
-     * @param array $expectedChildData
-     *
-     * @dataProvider collectItemHasChildrenDataProvider
-     */
-    public function testCollectItemHasChildrenWithNoDiscount($childItemData, $parentData, $expectedChildData)
-    {
-        $childItems = [];
-        foreach ($childItemData as $itemId => $itemData) {
-            $item = $this->objectManager->getObject(QuoteItemModel::class)->setData($itemData);
-            $childItems[$itemId] = $item;
-        }
-
-        $itemWithChildren = $this->getMockBuilder(QuoteItemModel::class)
-            ->disableOriginalConstructor()
-            ->setMethods(
-                [
-                    'getNoDiscount',
-                    'getParentItem',
-                    'getHasChildren',
-                    'isChildrenCalculated',
-                    'getChildren',
-                    '__wakeup',
-                ]
-            )
-            ->getMock();
-        $itemWithChildren->expects($this->once())
-            ->method('getNoDiscount')
-            ->willReturn(true);
-
-        $itemWithChildren->expects($this->once())
-            ->method('getHasChildren')
-            ->willReturn(true);
-        $itemWithChildren->expects($this->once())
-            ->method('isChildrenCalculated')
-            ->willReturn(true);
-
-        $itemWithChildren->expects($this->any())
-            ->method('getChildren')
-            ->willReturn($childItems);
-
-        $quoteMock = $this->partOfApplyingCoupons($itemWithChildren);
-
-        $totalMock = $this->createMock(QuoteAddressModel\Total::class);
-
-        $this->assertInstanceOf(
-            QuoteDiscount::class,
-            $this->discount->collect($quoteMock, $this->shippingAssignmentMock, $totalMock)
-        );
     }
 
     /**
